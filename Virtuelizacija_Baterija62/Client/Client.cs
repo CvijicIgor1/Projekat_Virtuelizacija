@@ -18,9 +18,7 @@ namespace Client
             IBatteryService proxy = factory.CreateChannel();
 
             Console.WriteLine(proxy.Ping()); // dodao sam da bih proveravao da li app.config dobro radi
-            string dataSetPutanja = ConfigurationManager.AppSettings["DataSetPath"];
 
-            
             DataHandler.SendFiles(proxy);  //cita i salje podatke serveru
 
             ((IClientChannel)proxy).Close();

@@ -11,8 +11,10 @@ namespace Client
 {
     public class DataHandler
     {
-        public static List<string> CSVProlaz(string dataSetPutanja)
+        public static List<string> CSVProlaz()
         {
+            string dataSetPutanja = ConfigurationManager.AppSettings["DataSetPath"];
+            dataSetPutanja = Path.GetFullPath(dataSetPutanja);
             string[] sviCsvFajlovi = Directory.GetFiles(dataSetPutanja, "*.csv", SearchOption.AllDirectories);
 
             foreach (string csvFile in sviCsvFajlovi)  //samo prolazim kroz sve, ne saljem nigde za sada
@@ -35,7 +37,7 @@ namespace Client
         
         public static void SendFiles(IBatteryService proxy)
         {
-            List<String> redovi = CSVProlaz(ConfigurationManager.AppSettings["DataSetPutanja"]);
+            List<String> redovi = CSVProlaz();
 
             if (redovi != null)
             {
