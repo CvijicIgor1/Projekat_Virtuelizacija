@@ -1,6 +1,8 @@
 ﻿using Common;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
@@ -13,11 +15,15 @@ namespace Client
         static void Main(string[] args)
         {
             var factory = new ChannelFactory<IBatteryService>("BaterijaEndpoint");
-            IBatteryService client = factory.CreateChannel();
+            IBatteryService proxy = factory.CreateChannel();
 
-            Console.WriteLine(client.Ping()); // dodao sam da bih proveravao da li app.config dobro radi
+            Console.WriteLine(proxy.Ping()); // dodao sam da bih proveravao da li app.config dobro radi
+            string dataSetPutanja = ConfigurationManager.AppSettings["DataSetPath"];
 
-            ((IClientChannel)client).Close();
+            
+            DataHandler.SendFiles(proxy);  //cita i salje podatke serveru
+
+            ((IClientChannel)proxy).Close();
             factory.Close();
 
             Console.ReadKey();
