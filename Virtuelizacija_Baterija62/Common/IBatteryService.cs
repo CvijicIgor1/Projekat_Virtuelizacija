@@ -11,13 +11,18 @@ namespace Common
     public interface IBatteryService
     {
         [OperationContract]
-        void StartSession(EisMeta meta);
+        [FaultContract(typeof(DataFormatFault))]
+        [FaultContract(typeof(ValidationFault))]
+        string StartSession(EisMeta meta);
 
         [OperationContract]
-        void PushSample(EisSample sample);
+        [FaultContract(typeof(DataFormatFault))]
+        [FaultContract(typeof(ValidationFault))]
+        string PushSample(EisSample sample);
 
         [OperationContract]
-        void EndSession();
+        [FaultContract(typeof(ValidationFault))]
+        string EndSession(); // moze i void ali mozda bolje je string zbog konzistencije sa ostalim metodama
 
         [OperationContract]
         string Ping(); // za proveru app.config-a
