@@ -8,7 +8,7 @@ using System.ServiceModel;
 
 namespace Service
 {
-    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single,ConcurrencyMode = ConcurrencyMode.Single)]
+    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Single)]
     public class BatteryService : IBatteryService
     {
         //  Stanje aktivne sesije
@@ -216,6 +216,16 @@ namespace Service
         {
             Console.WriteLine("[Ping] Primljen ping od klijenta.");
             return "POVEZAN";
+        }
+
+        public FileManipulationResults SendFile(FileManipulationOptions options) //za KT2, nisam hteo da brisem
+        {
+            throw new NotImplementedException();
+        }
+
+        public FileManipulationResults GetFiles(FileManipulationOptions options) //za KT2, nisam hteo da brisem
+        {
+            throw new NotImplementedException();
         }
     }
 }

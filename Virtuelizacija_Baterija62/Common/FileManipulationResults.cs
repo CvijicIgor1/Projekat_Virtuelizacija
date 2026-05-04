@@ -10,6 +10,12 @@ namespace Common
 {
     public class FileManipulationResults : IDisposable
     {
+        public enum ResultTypes
+        {
+            Success,
+            Warning,
+            Failed
+        }
         public FileManipulationResults()
         {
             ResultType = ResultTypes.Success;

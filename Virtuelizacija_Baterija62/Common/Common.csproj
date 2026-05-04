@@ -50,6 +50,8 @@
     <Compile Include="DataFormatFault.cs" />
     <Compile Include="EisMeta.cs" />
     <Compile Include="EisSample.cs" />
+    <Compile Include="FileManipulationOptions.cs" />
+    <Compile Include="FileManipulationResults.cs" />
     <Compile Include="IBatteryService.cs" />
     <Compile Include="Common.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

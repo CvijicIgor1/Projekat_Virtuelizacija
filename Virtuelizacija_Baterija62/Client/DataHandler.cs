@@ -11,7 +11,7 @@ namespace Client
 {
     public class DataHandler
     {
-        public static List<string> CSVProlaz()
+        public static (List<string>, EisMeta) CSVProlaz()
         {
             string dataSetPutanja = ConfigurationManager.AppSettings["DataSetPath"];
             dataSetPutanja = Path.GetFullPath(dataSetPutanja);
@@ -19,32 +19,42 @@ namespace Client
 
             foreach (string csvFile in sviCsvFajlovi)  //samo prolazim kroz sve, ne saljem nigde za sada
             {
-                List<string> redovi = new List<string> { csvFile }; //red 0 ce biti naslov falja, jer su tu metapodaci
+                //meta uzorak
+                string fileName = Path.GetFileName(csvFile); // "Hk_IFR14500_SoC_5_04-07-2023_05-13.csv"
+                EisMeta meta = EisMeta.EkstraktujMetaPodatke(csvFile); //izvucem metapodatke iz csv fajla, koji su u prvom redu
+
+
+                //ostali redovi (bez zaglavlja naravno)
+                List<string> redovi = new List<string>(); //red 0 ce biti naslov falja, jer su tu metapodaci
                 string[] linijeUFajlu = File.ReadAllLines(csvFile);
                 int rowIndex = 0;
-                foreach(string linija in linijeUFajlu)
+                for (int i = 1; i < linijeUFajlu.Length; i++) //prvu liniju ne citam, to je heder
                 {
-                    string SpremnaLinija = String.Copy(linija);
-                    SpremnaLinija = rowIndex + "," + linija; //dodajem redni broj reda, jer ce mi trebati za RowIndex u EisSample
+                    string SpremnaLinija = String.Copy(linijeUFajlu[i]);
+                    SpremnaLinija = rowIndex + "," + linijeUFajlu[i]; //dodajem redni broj reda, jer ce mi trebati za RowIndex u EisSample
                     redovi.Add(SpremnaLinija);
+                    rowIndex++;
                 }
 
-                return redovi;
+                return (redovi, meta);
             }
 
-            return null;
+            return (null, null);
         }
-        
+
         public static void SendFiles(IBatteryService proxy)
         {
-            List<String> redovi = CSVProlaz();
+            (List<String> redovi, EisMeta meta) = CSVProlaz();
 
             if (redovi != null)
             {
+                proxy.StartSession(meta);
                 foreach (string red in redovi)
                 {
-                    proxy.SendFile(new FileManipulationOptions(FileManipulation.GetMemoryStream(red), red));
+                    EisSample s = EisSample.EkstraktujSamplePodatke(red);
+                    string response = proxy.PushSample(s);
                 }
+                proxy.EndSession();
             }
             else
             {
