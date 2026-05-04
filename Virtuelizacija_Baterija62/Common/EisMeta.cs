@@ -29,15 +29,16 @@ namespace Common
 
         public static EisMeta EkstraktujMetaPodatke(string csvFile)
         {
-            string batteryId = ConfigurationManager.AppSettings["BatteryId"];  //nasa baza je Dataset → B01 → EIS measurements → Test_1 → Hioki, pa se 
-            string testId = ConfigurationManager.AppSettings["TestId"];        // testId i batteryId nalaze u app.config, jer su isti za sve fajlove. Ne mogu iz naziva da ih vadim jer sam skinuo samo deo dataseta
-                                                                               //koji nam treba za projekat, zbog git-a (pitacu na konsultacijama)
+            string[] delovi = csvFile.Split(Path.DirectorySeparatorChar);  //bice isto za sve jer radimo samo Hioki
+            string batteryId = delovi[delovi.Length - 5]; // "B01"
+            string testId = delovi[delovi.Length - 3];     // "Test_1"
+
 
             string fileName = Path.GetFileName(csvFile);
             string[] podaci = fileName.Split('_');
             double soc = Convert.ToDouble(podaci[3]);
-
-            return new EisMeta(batteryId, testId, soc, fileName, 28);
+            int totalRows = File.ReadAllLines(csvFile).Length - 1; //ima ih 29, ali je prvi zaglavlje. Generalno je 28 svuda, ali ovako je sigurnije, ako budemo morali da prosirimo dataset
+            return new EisMeta(batteryId, testId, soc, fileName, totalRows);
         }
     }
 }
