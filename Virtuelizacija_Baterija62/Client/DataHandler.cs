@@ -41,7 +41,10 @@ namespace Client
 
             if (redovi != null)
             {
-                //ovde sam stao
+                foreach (string red in redovi)
+                {
+                    proxy.SendFile(new FileManipulationOptions(FileManipulation.GetMemoryStream(red), red));
+                }
             }
             else
             {
