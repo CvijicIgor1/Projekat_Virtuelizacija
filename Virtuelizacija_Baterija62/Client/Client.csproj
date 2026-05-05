@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client.cs" />
+    <Compile Include="CSVReader.cs" />
     <Compile Include="DataHandler.cs" />
     <Compile Include="FileManipulator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -61,5 +61,58 @@ namespace Client
                 Console.WriteLine("Greska pri citanju CSV!");
             }
         }
+
+        public static void SendFilesSimulacijaPrekida(IBatteryService proxy)
+        {
+            string dataSetPutanja = ConfigurationManager.AppSettings["DataSetPath"];
+            dataSetPutanja = Path.GetFullPath(dataSetPutanja);
+            string[] sviCsvFajlovi = Directory.GetFiles(dataSetPutanja, "*.csv", SearchOption.AllDirectories);
+
+            if (sviCsvFajlovi.Length == 0) return;
+
+            string csvFile = sviCsvFajlovi[0];
+            EisMeta meta = EisMeta.EkstraktujMetaPodatke(csvFile);
+
+            // Koristimo CsvReader koji implementira IDisposable
+            using (CsvReader reader = new CsvReader(csvFile))
+            {
+                proxy.StartSession(meta);
+                Console.WriteLine("[Simulacija] Pocetak prenosa...");
+
+                int rowIndex = 0;
+                bool prvaLinija = true;
+
+                while (!reader.KrajFajla())
+                {
+                    string linija = reader.CitajSledeciRed();
+
+                    if (prvaLinija) { prvaLinija = false; continue; } // preskoci header
+
+                    // SIMULACIJA PREKIDA: posle 5. reda "pukne veza"
+                    if (rowIndex == 5)
+                    {
+                        Console.WriteLine("[Simulacija] *** PREKID VEZE usred prenosa! ***");
+                        // using ce automatski pozvati Dispose() i zatvoriti FileStream/StreamReader
+                        // cak i kad dodje do izuzetka
+                        throw new Exception("Simulirani prekid mrezne veze.");
+                    }
+
+                    try
+                    {
+                        string red = rowIndex + "," + linija;
+                        EisSample s = EisSample.EkstraktujSamplePodatke(red);
+                        proxy.PushSample(s);
+                        rowIndex++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[GRESKA] Red {rowIndex}: {ex.Message}");
+                    }
+                }
+
+                proxy.EndSession();
+            }
+            // Ovde je using automatski pozvao Dispose() - fajl je zatvoren
+        }
     }
 }

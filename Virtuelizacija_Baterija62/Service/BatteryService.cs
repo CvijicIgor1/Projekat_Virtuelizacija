@@ -169,10 +169,10 @@ namespace Service
 
             string status = (primljenoUzoraka >= aktivnaSesija.TotalRows) ? "COMPLETED" : "IN_PROGRESS";
 
-            Console.WriteLine($"[ACK] Uzorak {sample.RowIndex,3} | " +
-                              $"F={sample.FrequencyHz,10:F2} Hz | " +
-                              $"R={sample.R_ohm,8:F5} Ω | " +
-                              $"T={sample.T_degC,5:F1}°C | " +
+            Console.WriteLine($"[ACK] Uzorak {sample.RowIndex,3}| " +
+                              $"F={sample.FrequencyHz:F2}Hz | " +
+                              $"R={sample.R_ohm:F5}Ω | " +
+                              $"T={sample.T_degC:F1}°C | " +
                               $"Status: {status} ({primljenoUzoraka}/{aktivnaSesija.TotalRows})");
 
             return $"ACK: Uzorak {sample.RowIndex} prihvacen. Status: {status}";
