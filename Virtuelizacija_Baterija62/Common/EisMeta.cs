@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
@@ -29,15 +30,13 @@ namespace Common
 
         public static EisMeta EkstraktujMetaPodatke(string csvFile)
         {
-            string[] delovi = csvFile.Split(Path.DirectorySeparatorChar);  //bice isto za sve jer radimo samo Hioki
-            string batteryId = delovi[delovi.Length - 5]; // "B01"
-            string testId = delovi[delovi.Length - 3];     // "Test_1"
-
-
+            string[] delovi = csvFile.Split(Path.DirectorySeparatorChar);
+            string batteryId = delovi[delovi.Length - 5];  //B01
+            string testId = delovi[delovi.Length - 3];  //Test_1
             string fileName = Path.GetFileName(csvFile);
             string[] podaci = fileName.Split('_');
-            double soc = Convert.ToDouble(podaci[3]);
-            int totalRows = File.ReadAllLines(csvFile).Length - 1; //ima ih 29, ali je prvi zaglavlje. Generalno je 28 svuda, ali ovako je sigurnije, ako budemo morali da prosirimo dataset
+            double soc = double.Parse(podaci[3], CultureInfo.InvariantCulture);
+            int totalRows = File.ReadAllLines(csvFile).Length - 1;
             return new EisMeta(batteryId, testId, soc, fileName, totalRows);
         }
     }

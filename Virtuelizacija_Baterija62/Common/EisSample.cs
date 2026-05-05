@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -32,15 +34,18 @@ namespace Common
         public static EisSample EkstraktujSamplePodatke(string redIzFajla)
         {
             string[] podaci = redIzFajla.Split(',');
+            int rowIndex = int.Parse(podaci[0]);
+            double frequencyHz = double.Parse(podaci[1], CultureInfo.InvariantCulture);
+            double r_ohm = double.Parse(podaci[2], CultureInfo.InvariantCulture);
+            double x_ohm = double.Parse(podaci[3], CultureInfo.InvariantCulture);
+            double t_degC = double.Parse(podaci[5], CultureInfo.InvariantCulture);
+            double range_ohm = double.Parse(podaci[6], CultureInfo.InvariantCulture);
+            DateTime timestampLocal = DateTime.Now;
 
-            int rowIndex = Convert.ToInt32(podaci[0]);
-            double frequencyHz = Convert.ToDouble(podaci[1]);
-            double r_ohm = Convert.ToDouble(podaci[2]);
-            double x_ohm = Convert.ToDouble(podaci[3]);
-            //4 se ne korisi u specifikaciji
-            double t_degC = Convert.ToDouble(podaci[5]);
-            double range_ohm = Convert.ToDouble(podaci[6]);
-            DateTime timestampLocal = DateTime.Now; 
+            if (rowIndex < 0 || frequencyHz < 0 || r_ohm < 0 || x_ohm < 0 || t_degC < 0 || range_ohm < 0)
+            {
+                File.AppendAllText("greske_log.txt", $"Nevalidan red!\nRed: {rowIndex}, Sadrzaj: {redIzFajla}{Environment.NewLine}");
+            }
 
             return new EisSample(rowIndex, frequencyHz, r_ohm, x_ohm, t_degC, range_ohm, timestampLocal);
         }

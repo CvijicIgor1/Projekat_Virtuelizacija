@@ -11,11 +11,12 @@ namespace Client
 {
     public class DataHandler
     {
-        public static (List<string>, EisMeta) CSVProlaz()
+        public static List<(List<string>, EisMeta)> CSVProlaz()
         {
             string dataSetPutanja = ConfigurationManager.AppSettings["DataSetPath"];
             dataSetPutanja = Path.GetFullPath(dataSetPutanja);
             string[] sviCsvFajlovi = Directory.GetFiles(dataSetPutanja, "*.csv", SearchOption.AllDirectories);
+            var podaciIzSvihFajlova = new List<(List<string>, EisMeta)>();
 
             foreach (string csvFile in sviCsvFajlovi)  //samo prolazim kroz sve, ne saljem nigde za sada
             {
@@ -27,34 +28,46 @@ namespace Client
                 //ostali redovi (bez zaglavlja naravno)
                 List<string> redovi = new List<string>(); //red 0 ce biti naslov falja, jer su tu metapodaci
                 string[] linijeUFajlu = File.ReadAllLines(csvFile);
+
                 int rowIndex = 0;
                 for (int i = 1; i < linijeUFajlu.Length; i++) //prvu liniju ne citam, to je heder
                 {
+                    if(rowIndex > 28) //"visak redova u odvojeni log"
+                    {
+                        File.AppendAllText("greske_log.txt", $"Visak redova!\nFajl: {fileName}, Red: {rowIndex}, Sadrzaj: {linijeUFajlu[i]}{Environment.NewLine}");
+                    }
+
                     string SpremnaLinija = String.Copy(linijeUFajlu[i]);
                     SpremnaLinija = rowIndex + "," + linijeUFajlu[i]; //dodajem redni broj reda, jer ce mi trebati za RowIndex u EisSample
                     redovi.Add(SpremnaLinija);
                     rowIndex++;
                 }
 
-                return (redovi, meta);
+                podaciIzSvihFajlova.Add((redovi, meta));
             }
 
-            return (null, null);
+            return podaciIzSvihFajlova;
         }
 
         public static void SendFiles(IBatteryService proxy)
         {
-            (List<String> redovi, EisMeta meta) = CSVProlaz();
+            List <(List<string>, EisMeta)> sviRedoviIzSvihFaljova = CSVProlaz();
 
-            if (redovi != null)
+            if (sviRedoviIzSvihFaljova.Count !=0)
             {
-                proxy.StartSession(meta);
-                foreach (string red in redovi)
+                for (int i = 0; i < sviRedoviIzSvihFaljova.Count; i++)
                 {
-                    EisSample s = EisSample.EkstraktujSamplePodatke(red);
-                    string response = proxy.PushSample(s);
+                    List<string> redovi = sviRedoviIzSvihFaljova[i].Item1; //svaki fajl ima svoje redove
+                    EisMeta meta = sviRedoviIzSvihFaljova[i].Item2;  //svaki fajl ima svoje metapodatke
+
+                    proxy.StartSession(meta);
+                    foreach (string red in redovi)
+                    {
+                        EisSample s = EisSample.EkstraktujSamplePodatke(red);
+                        string response = proxy.PushSample(s);
+                    }
+                    proxy.EndSession();
                 }
-                proxy.EndSession();
             }
             else
             {
