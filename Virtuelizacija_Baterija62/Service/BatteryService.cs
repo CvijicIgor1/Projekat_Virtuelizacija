@@ -1,10 +1,12 @@
 ﻿using Common;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
+using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
-using System.ServiceModel;
 
 namespace Service
 {
@@ -19,6 +21,8 @@ namespace Service
 
         public string StartSession(EisMeta meta)
         {
+            KreirajLogFajlove(meta.BatteryId, meta.TestId, meta.SoC.ToString());  //pravim session i reject fajlove, ako vec postoje napravice se prazni
+
             if (meta == null)
             {
                 var fault = new DataFormatFault(
@@ -99,6 +103,18 @@ namespace Service
 
             return "ACK: Sesija otvorena. Status: IN_PROGRESS";
         }
+
+        private void KreirajLogFajlove(string batteryId, string testId, string SoC)
+        {
+            (string sessionPutanja, string errorPutanja) = DobijPutanjeLogFajlova(batteryId, testId, SoC);
+
+            string folder = System.IO.Path.GetDirectoryName(sessionPutanja);
+            System.IO.Directory.CreateDirectory(folder); // pravi sve podfoldere
+
+            System.IO.File.Create(sessionPutanja).Close();
+            System.IO.File.Create(errorPutanja).Close();
+        }
+
         public string PushSample(EisSample sample)
         {
             if (sesijaNijeZapoceta || aktivnaSesija == null)
@@ -122,6 +138,8 @@ namespace Service
                 throw new FaultException<DataFormatFault>(fault, fault.Poruka);
             }
 
+            (string sessionPutanja, string errorPutanja) = DobijPutanjeLogFajlova(aktivnaSesija.BatteryId, aktivnaSesija.TestId, aktivnaSesija.SoC.ToString());
+
             if (double.IsNaN(sample.R_ohm) || double.IsInfinity(sample.R_ohm))
             {
                 var fault = new DataFormatFault(
@@ -129,7 +147,9 @@ namespace Service
                     polje: "R_ohm",
                     primljenaVrednost: sample.R_ohm.ToString());
                 Console.WriteLine($"[FAULT:DataFormat] R_ohm={sample.R_ohm} nije realan broj.");
-                throw new FaultException<DataFormatFault>(fault, fault.Poruka);
+                // throw new FaultException<DataFormatFault>(fault, fault.Poruka);
+                File.AppendAllText(errorPutanja, $"Red: {sample.RowIndex}, Vreme: {DateTime.Now}, Razlog: Pogresan format R_ohm !\n");
+                return $"[NACK]: Uzorak {sample.RowIndex} odbacen. Razlog: Pogresan format R_ohm !";
             }
 
             if (double.IsNaN(sample.T_degC) || double.IsInfinity(sample.T_degC))
@@ -139,7 +159,9 @@ namespace Service
                     polje: "T_degC",
                     primljenaVrednost: sample.T_degC.ToString());
                 Console.WriteLine($"[FAULT:DataFormat] T_degC={sample.T_degC} nije realan broj.");
-                throw new FaultException<DataFormatFault>(fault, fault.Poruka);
+                //throw new FaultException<DataFormatFault>(fault, fault.Poruka);
+                File.AppendAllText(errorPutanja, $"Red: {sample.RowIndex}, Vreme: {DateTime.Now}, Razlog: Pogresan format T !\n");
+                return $"[NACK]: Uzorak {sample.RowIndex} odbacen. Razlog: Pogresan format T !";
             }
 
             if (sample.FrequencyHz <= 0)
@@ -150,7 +172,9 @@ namespace Service
                     ocekivanoOpisno: "FrequencyHz > 0",
                     primljenaVrednost: sample.FrequencyHz.ToString());
                 Console.WriteLine($"[FAULT:Validation] FrequencyHz={sample.FrequencyHz} nije pozitivan.");
-                throw new FaultException<ValidationFault>(fault, fault.Poruka);
+                //throw new FaultException<ValidationFault>(fault, fault.Poruka);
+                File.AppendAllText(errorPutanja, $"Red: {sample.RowIndex}, Vreme: {DateTime.Now}, Razlog: Frequency <=0 !\n");
+                return $"[NACK]: Uzorak {sample.RowIndex} odbacen. Razlog: Frequency <=0 !";
             }
 
             if (sample.RowIndex <= poslednjiRowIndex)
@@ -169,13 +193,27 @@ namespace Service
 
             string status = (primljenoUzoraka >= aktivnaSesija.TotalRows) ? "COMPLETED" : "IN_PROGRESS";
 
-            Console.WriteLine($"[ACK] Uzorak {sample.RowIndex,3}| " +
+            string ACKLine = $"[ACK] Uzorak {sample.RowIndex,3}| " +
                               $"F={sample.FrequencyHz:F2}Hz | " +
                               $"R={sample.R_ohm:F5}Ω | " +
                               $"T={sample.T_degC:F1}°C | " +
-                              $"Status: {status} ({primljenoUzoraka}/{aktivnaSesija.TotalRows})");
+                              $"Status: {status} ({primljenoUzoraka}/{aktivnaSesija.TotalRows})";
 
+            Console.WriteLine(ACKLine);
+
+            File.AppendAllText(sessionPutanja, ACKLine + "\n");
             return $"ACK: Uzorak {sample.RowIndex} prihvacen. Status: {status}";
+        }
+
+        public (string, string) DobijPutanjeLogFajlova(string batteryId, string testId, string SoC)
+        {
+            string logPath = ConfigurationManager.AppSettings["ServiceDataLogPath"];
+            string addOn = $"/{batteryId}/{testId}/{SoC}";  //pravim punu putanju ovde
+
+            string sessionLogFile = $"{logPath}/{addOn}/session.csv";
+            string errorLogFile = $"{logPath}/{addOn}/rejects.txt";
+
+            return (sessionLogFile, errorLogFile);
         }
 
         public string EndSession()
