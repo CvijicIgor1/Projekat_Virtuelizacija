@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Service
 {
-    internal class BatteryEvents
+    public class BatteryEvents
     {
         public class TransferStartedEventArgs : EventArgs
         {

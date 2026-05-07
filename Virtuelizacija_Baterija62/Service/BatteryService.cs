@@ -7,6 +7,7 @@ using System.Linq;
 using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
+using static Service.BatteryEvents;
 
 namespace Service
 {
@@ -20,6 +21,28 @@ namespace Service
         private int poslednjiRowIndex = -1;
         private int primljenoUzoraka = 0;
         private bool sesijaNijeZapoceta = true;
+
+        public event EventHandler<TransferStartedEventArgs> OnTransferStarted;
+        public event EventHandler<SampleReceivedEventArgs> OnSampleReceived;
+        public event EventHandler<TransferCompletedEventArgs> OnTransferCompleted;
+        public event EventHandler<WarningRaisedEventArgs> OnWarningRaised;
+
+
+        protected void RaiseTransferStarted(EisMeta meta) => OnTransferStarted?.Invoke(this, new TransferStartedEventArgs { BatteryId = meta.BatteryId, TestId = meta.TestId, SoC = meta.SoC });
+
+        protected void RaiseSampleReceived(EisSample s) => OnSampleReceived?.Invoke(this, new SampleReceivedEventArgs
+            {
+                RowIndex = s.RowIndex,
+                FrequencyHz = s.FrequencyHz,
+                T_degC = s.T_degC,
+                Primljeno = primljenoUzoraka,
+                Ukupno = aktivnaSesija.TotalRows
+            });
+
+        protected void RaiseTransferCompleted(string batteryId, int primljeno) => OnTransferCompleted?.Invoke(this, new TransferCompletedEventArgs
+            { BatteryId = batteryId, PrimljenoUzoraka = primljeno });
+
+        public void RaiseWarning(string tip, string poruka) =>OnWarningRaised?.Invoke(this, new WarningRaisedEventArgs { Tip = tip, Poruka = poruka });
 
 
         public string StartSession(EisMeta meta)
@@ -108,6 +131,8 @@ namespace Service
             Console.WriteLine($"Fajl : {meta.FileName}");
             Console.WriteLine($"Ukupno red: {meta.TotalRows}");
             Console.WriteLine("=================================================");
+
+            RaiseTransferStarted(meta);
 
             return "ACK: Sesija otvorena. Status: IN_PROGRESS";
         }
@@ -199,6 +224,8 @@ namespace Service
             poslednjiRowIndex = sample.RowIndex;
             primljenoUzoraka++;
 
+            RaiseSampleReceived(sample);
+
             sessionWriter?.WriteLine($"{sample.RowIndex},{sample.FrequencyHz},{sample.R_ohm}," + $"{sample.X_ohm},{sample.T_degC},{sample.Range_ohm}," + $"{sample.TimestampLocal:o}");
             sessionWriter?.Flush();
             Console.WriteLine($"[STREAMING] Prenos u toku... ({primljenoUzoraka}/{aktivnaSesija.TotalRows})");
@@ -255,6 +282,8 @@ namespace Service
 
             sessionWriter?.Close();
             sessionWriter = null;
+
+            RaiseTransferCompleted(batteryId, primljeno);
 
             Console.WriteLine("=================================================");
             Console.WriteLine($"[ACK] Sesija zatvorena.");
