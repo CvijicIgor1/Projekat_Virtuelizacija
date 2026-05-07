@@ -27,7 +27,7 @@ namespace Service
 
             servis.OnWarningRaised += (s, e) => File.AppendAllText(warningLog, $"{DateTime.Now:o} [{e.Tip}] {e.Poruka}{Environment.NewLine}");
 
-            ServiceHost host = new ServiceHost(typeof(BatteryService));
+            ServiceHost host = new ServiceHost(servis); // prosledjujemo istu instancu ne pravimo non stop novu 
             host.Open();
             Console.WriteLine("Servis pokrenut. Cekam konekciju...");
             Console.ReadLine(); 
