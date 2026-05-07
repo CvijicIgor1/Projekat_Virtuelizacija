@@ -13,16 +13,17 @@ namespace Service
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Single)]
     public class BatteryService : IBatteryService
     {
+        private StreamWriter sessionWriter = null;
+        private string sessionCsvPath = null;
         //  Stanje aktivne sesije
         private EisMeta aktivnaSesija = null;
         private int poslednjiRowIndex = -1;
         private int primljenoUzoraka = 0;
         private bool sesijaNijeZapoceta = true;
 
+
         public string StartSession(EisMeta meta)
         {
-            KreirajLogFajlove(meta.BatteryId, meta.TestId, meta.SoC.ToString());  //pravim session i reject fajlove, ako vec postoje napravice se prazni
-
             if (meta == null)
             {
                 var fault = new DataFormatFault(
@@ -91,6 +92,13 @@ namespace Service
             poslednjiRowIndex = -1;
             primljenoUzoraka = 0;
             sesijaNijeZapoceta = false;
+            KreirajLogFajlove(meta.BatteryId, meta.TestId, meta.SoC.ToString());
+
+            string baseDir = ConfigurationManager.AppSettings["DataOutputPath"] ?? "Data";
+            sessionCsvPath = Path.Combine(baseDir, meta.BatteryId, meta.TestId, meta.SoC + "%", "session.csv");
+            Directory.CreateDirectory(Path.GetDirectoryName(sessionCsvPath));
+            sessionWriter = new StreamWriter(sessionCsvPath, append: true);
+            sessionWriter.WriteLine("RowIndex,FrequencyHz,R_ohm,X_ohm,T_degC,Range_ohm,Timestamp");
 
             Console.WriteLine("=================================================");
             Console.WriteLine($"[ACK] Sesija otvorena.");
@@ -191,6 +199,10 @@ namespace Service
             poslednjiRowIndex = sample.RowIndex;
             primljenoUzoraka++;
 
+            sessionWriter?.WriteLine($"{sample.RowIndex},{sample.FrequencyHz},{sample.R_ohm}," + $"{sample.X_ohm},{sample.T_degC},{sample.Range_ohm}," + $"{sample.TimestampLocal:o}");
+            sessionWriter?.Flush();
+            Console.WriteLine($"[STREAMING] Prenos u toku... ({primljenoUzoraka}/{aktivnaSesija.TotalRows})");
+
             string status = (primljenoUzoraka >= aktivnaSesija.TotalRows) ? "COMPLETED" : "IN_PROGRESS";
 
             string ACKLine = $"[ACK] Uzorak {sample.RowIndex,3}| " +
@@ -241,11 +253,15 @@ namespace Service
             primljenoUzoraka = 0;
             sesijaNijeZapoceta = true;
 
+            sessionWriter?.Close();
+            sessionWriter = null;
+
             Console.WriteLine("=================================================");
             Console.WriteLine($"[ACK] Sesija zatvorena.");
             Console.WriteLine($"Baterija  : {batteryId} / {testId} / SoC={soc}%");
             Console.WriteLine($"Primljeno : {primljeno} od {ocekivano} uzoraka");
             Console.WriteLine("=================================================");
+            Console.WriteLine("[STREAMING] Prenos završen.");
 
             return $"ACK: Sesija zatvorena. Status: COMPLETED. Primljeno uzoraka: {primljeno}/{ocekivano}.";
         }
