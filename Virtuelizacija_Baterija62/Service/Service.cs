@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.ServiceModel;
 using System.Configuration;
 using System.IO;
+using System.Diagnostics.Tracing;
+using Common;
 
 namespace Service
 {
@@ -14,6 +16,8 @@ namespace Service
         static void Main(string[] args)
         {
             BatteryService servis = new BatteryService(); // instanca je u pitanju da se ne zbunimo
+
+            MojEventListener mojListener = new MojEventListener();
 
             servis.OnTransferStarted += (s, e) => Console.WriteLine($"[EVENT] Sesija pocela: {e.BatteryId}/{e.TestId} SoC={e.SoC}%");
 
@@ -26,6 +30,8 @@ namespace Service
             string warningLog = ConfigurationManager.AppSettings["WarningLogPath"] ?? "warnings.log";
 
             servis.OnWarningRaised += (s, e) => File.AppendAllText(warningLog, $"{DateTime.Now:o} [{e.Tip}] {e.Poruka}{Environment.NewLine}");
+
+            servis.OnTempSpikeDetected += (s, e) => mojListener.OnTempSpike(s, e);
 
             ServiceHost host = new ServiceHost(servis); // prosledjujemo istu instancu ne pravimo non stop novu 
             host.Open();

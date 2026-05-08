@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Service
 {
-    public class BatteryEvents
+    public class BatteryEventArgs
     {
         public class TransferStartedEventArgs : EventArgs
         {
@@ -34,6 +34,14 @@ namespace Service
         {
             public string Poruka { get; set; }
             public string Tip { get; set; }
+        }
+
+        public class TempSpikes : EventArgs
+        {
+            public double T { get; set; }
+            public double deltaT { get; set; }
+            public double soC { get; set; }
+            public double frequency { get; set; }
         }
     }
 }

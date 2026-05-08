@@ -4,10 +4,11 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
-using static Service.BatteryEvents;
+using static Service.BatteryEventArgs;
 
 namespace Service
 {
@@ -27,7 +28,9 @@ namespace Service
         public event EventHandler<SampleReceivedEventArgs> OnSampleReceived;
         public event EventHandler<TransferCompletedEventArgs> OnTransferCompleted;
         public event EventHandler<WarningRaisedEventArgs> OnWarningRaised;
+        public event EventHandler<TempSpikes> OnTempSpikeDetected;
 
+        
 
         protected void RaiseTransferStarted(EisMeta meta) => OnTransferStarted?.Invoke(this, new TransferStartedEventArgs { BatteryId = meta.BatteryId, TestId = meta.TestId, SoC = meta.SoC });
 
@@ -310,7 +313,15 @@ namespace Service
 
             if (Math.Abs(deltaT) > threshold)
             {
-                //event ovde, samo da skontam kako
+                TempSpikes spikeinfo = new TempSpikes
+                {
+                    T = sampleNovi.T_degC,
+                    deltaT = deltaT,
+                    soC = aktivnaSesija.SoC,
+                    frequency = sampleNovi.FrequencyHz
+                };
+
+                OnTempSpikeDetected(this, spikeinfo);
             }
         }
 
