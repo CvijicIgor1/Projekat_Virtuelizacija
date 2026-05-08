@@ -16,6 +16,7 @@ namespace Service
     {
         private StreamWriter sessionWriter = null;
         private string sessionCsvPath = null;
+        private EisSample lastSample;
         //  Stanje aktivne sesije
         private EisMeta aktivnaSesija = null;
         private int poslednjiRowIndex = -1;
@@ -240,6 +241,13 @@ namespace Service
 
             Console.WriteLine(ACKLine);
 
+            //provera praga temperature
+            if (primljenoUzoraka > 1)
+            {
+                ProveraDeltaT(this.lastSample, sample);
+            }
+            this.lastSample = sample;
+
             File.AppendAllText(sessionPutanja, ACKLine + "\n");
             return $"ACK: Uzorak {sample.RowIndex} prihvacen. Status: {status}";
         }
@@ -293,6 +301,17 @@ namespace Service
             Console.WriteLine("[STREAMING] Prenos završen.");
 
             return $"ACK: Sesija zatvorena. Status: COMPLETED. Primljeno uzoraka: {primljeno}/{ocekivano}.";
+        }
+
+        private void ProveraDeltaT(EisSample sampleStari, EisSample sampleNovi)
+        {
+            double deltaT = sampleStari.T_degC - sampleNovi.T_degC;
+            double threshold = double.Parse(ConfigurationManager.AppSettings["T_threshold"], System.Globalization.CultureInfo.InvariantCulture);
+
+            if (Math.Abs(deltaT) > threshold)
+            {
+                //event ovde, samo da skontam kako
+            }
         }
 
         public string Ping()
