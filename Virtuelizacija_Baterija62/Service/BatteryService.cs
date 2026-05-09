@@ -251,6 +251,25 @@ namespace Service
             }
             this.lastSample = sample;
 
+            double rMin = double.Parse(ConfigurationManager.AppSettings["R_min"] ?? "0.001", System.Globalization.CultureInfo.InvariantCulture);
+            double rMax = double.Parse(ConfigurationManager.AppSettings["R_max"] ?? "1.0", System.Globalization.CultureInfo.InvariantCulture);
+            double rgMin = double.Parse(ConfigurationManager.AppSettings["Range_min"] ?? "0.0001", System.Globalization.CultureInfo.InvariantCulture);
+            double rgMax = double.Parse(ConfigurationManager.AppSettings["Range_max"] ?? "10.0", System.Globalization.CultureInfo.InvariantCulture);
+
+            if (sample.R_ohm < rMin || sample.R_ohm > rMax)
+            {
+                string porukaR = $"ResistanceOutOfBounds | Row={sample.RowIndex} | " + $"BatteryId={aktivnaSesija.BatteryId} | SoC={aktivnaSesija.SoC}% | " + $"R={sample.R_ohm:F5}Ω | Ocekivano: [{rMin}, {rMax}]";
+                RaiseWarning("ResistanceOutOfBounds", porukaR);
+                File.AppendAllText(errorPutanja, $"Red: {sample.RowIndex}, Vreme: {DateTime.Now}, Razlog: {porukaR}\n");
+            }
+
+            if (sample.Range_ohm < rgMin || sample.Range_ohm > rgMax)
+            {
+                string porukaRg = $"RangeMismatch | Row={sample.RowIndex} | " + $"BatteryId={aktivnaSesija.BatteryId} | SoC={aktivnaSesija.SoC}% | " + $"Range={sample.Range_ohm:F5}Ω | Ocekivano: [{rgMin}, {rgMax}]";
+                RaiseWarning("RangeMismatch", porukaRg);
+                File.AppendAllText(errorPutanja, $"Red: {sample.RowIndex}, Vreme: {DateTime.Now}, Razlog: {porukaRg}\n");
+            }
+
             File.AppendAllText(sessionPutanja, ACKLine + "\n");
             return $"ACK: Uzorak {sample.RowIndex} prihvacen. Status: {status}";
         }
@@ -308,7 +327,7 @@ namespace Service
 
         private void ProveraDeltaT(EisSample sampleStari, EisSample sampleNovi)
         {
-            double deltaT = sampleStari.T_degC - sampleNovi.T_degC;
+            double deltaT = sampleNovi.T_degC - sampleStari.T_degC; 
             double threshold = double.Parse(ConfigurationManager.AppSettings["T_threshold"], System.Globalization.CultureInfo.InvariantCulture);
 
             if (Math.Abs(deltaT) > threshold)
