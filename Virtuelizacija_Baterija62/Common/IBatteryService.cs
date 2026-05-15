@@ -25,12 +25,6 @@ namespace Common
         string EndSession(); // moze i void ali mozda bolje je string zbog konzistencije sa ostalim metodama
 
         [OperationContract]
-        FileManipulationResults SendFile(FileManipulationOptions options);
-
-        [OperationContract]
-        FileManipulationResults GetFiles(FileManipulationOptions options);
-
-        [OperationContract]
         string Ping(); // za proveru app.config-a
 
     }

@@ -22,9 +22,7 @@ namespace Client
             DataHandler.SendFiles(proxy);  //cita i salje podatke serveru
 
             ((IClientChannel)proxy).Close();
-            factory.Close();
 
-            Console.ReadKey();
 
 
             // ovde testiram simulaciju prekida prenosa, ali resursi su zatvoreni zahvaljujuci using/Dispose, tako da nema curenja resursa
@@ -37,6 +35,8 @@ namespace Client
                 Console.WriteLine($"[OPORAVAK] Prekinut prenos: {ex.Message}");
                 Console.WriteLine("[OPORAVAK] Resursi su ipak zatvoreni zahvaljujuci using/Dispose.");
             }
+            Console.ReadKey();
+            factory.Close();
         }
     }
 }
